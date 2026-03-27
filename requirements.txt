@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+streamlit
+sentence-transformers
+chromadb
+groq
+python-dotenv
+pydantic
+requests

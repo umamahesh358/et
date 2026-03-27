@@ -1,0 +1,82 @@
+[
+  {
+    "id": "article-001",
+    "title": "RBI Announces New AI Regulation Framework for Fintech",
+    "content": "The Reserve Bank of India (RBI) announced a comprehensive regulatory framework for artificial intelligence usage in the fintech sector. The new rules, effective June 2025, require companies to audit their AI models for bias and ensure transparent decision-making in lending. Industry leaders from NASSCOM welcomed the move, stating it brings much-needed clarity. However, early-stage startups may face increased compliance costs.",
+    "source": "The Economic Times",
+    "date": "2025-03-26",
+    "tags": ["AI", "Regulation", "Fintech", "RBI", "Startups"]
+  },
+  {
+    "id": "article-002",
+    "title": "Fintech Startups Brace for RBI's AI Compliance Rules",
+    "content": "Following the RBI's latest AI regulatory framework, Indian fintech startups are re-evaluating their compliance budgets. Founders estimate that the mandatory quarterly AI audits could increase operational costs by up to 15%. VCs are advising their portfolio companies to prioritize compliance over aggressive expansion in the next two quarters.",
+    "source": "The Economic Times",
+    "date": "2025-03-27",
+    "tags": ["Fintech", "Startups", "RBI", "Venture Capital"]
+  },
+  {
+    "id": "article-003",
+    "title": "Sensex Hits Record High Amid Global Market Rally",
+    "content": "The BSE Sensex touched a new lifetime high on Wednesday, tracking a broader global market rally. Tech and banking stocks led the surge, buoyed by positive earnings reports and expectations of interest rate cuts by the US Federal Reserve. Retail investors continue to pour money into mutual funds through SIPs, providing strong domestic liquidity.",
+    "source": "The Economic Times",
+    "date": "2025-03-25",
+    "tags": ["Markets", "Sensex", "Banking", "Retail Investors"]
+  },
+  {
+    "id": "article-004",
+    "title": "Electric Vehicle Sales Surge 40% in Q1",
+    "content": "Electric vehicle adoption in India continues to accelerate, with Q1 sales jumping 40% year-on-year. Two-wheelers dominate the volume, but four-wheeler EV sales are growing faster than expected. Major automakers are expanding their charging network partnerships to address range anxiety among potential buyers.",
+    "source": "The Economic Times",
+    "date": "2025-03-20",
+    "tags": ["Automobile", "EV", "Sales", "Infrastructure"]
+  },
+  {
+    "id": "article-005",
+    "title": "New Government Subsidy Scheme Excludes Premium EVs",
+    "content": "The Heavy Industries Ministry clarified that the new EV subsidy scheme will only apply to vehicles priced under Rs 15 lakh. Premium electric cars will not receive tax breaks. Manufacturers focused on the luxury segment argue this might slow down high-end tech adoption, while budget EV makers see it as a massive growth opportunity.",
+    "source": "The Economic Times",
+    "date": "2025-03-22",
+    "tags": ["Automobile", "EV", "Government Policy", "Subsidies"]
+  },
+  {
+    "id": "article-006",
+    "title": "IT Sector Hiring Expected to Rebound by 15%",
+    "content": "After a sluggish year, hiring in the Indian IT sector is projected to rebound by 15% in the upcoming fiscal year. TCS, Infosys, and HCLTech have announced plans to increase campus recruitments. The demand is primarily driven by projects in generative AI, cloud migration, and cybersecurity.",
+    "source": "The Economic Times",
+    "date": "2025-03-24",
+    "tags": ["IT Sector", "Hiring", "AI", "Cloud"]
+  },
+  {
+    "id": "article-007",
+    "title": "Generative AI Skills Command 30% Salary Premium",
+    "content": "A new report from a leading HR consultancy shows that software engineers with proven experience in Generative AI and LLM integration are commanding a 30% premium over standard compensation packages. Startups are outbidding major tech firms to secure top talent in this niche.",
+    "source": "The Economic Times",
+    "date": "2025-03-26",
+    "tags": ["Careers", "AI", "Salaries", "Startups"]
+  },
+  {
+    "id": "article-008",
+    "title": "Gold Prices Stabilize After Weeks of Volatility",
+    "content": "Gold prices in the domestic market stabilized around Rs 65,000 per 10 grams following weeks of geopolitical tension-induced volatility. Analysts suggest that the safe-haven demand is cooling off as inflation data signals a more predictable economic environment in western markets.",
+    "source": "The Economic Times",
+    "date": "2025-03-21",
+    "tags": ["Commodities", "Gold", "Markets", "Economy"]
+  },
+  {
+    "id": "article-009",
+    "title": "Sovereign Wealth Funds Increase Allocation to Indian Tech",
+    "content": "Middle Eastern sovereign wealth funds are reportedly increasing their allocation to the Indian technology sector. Moving away from traditional infrastructure plays, these funds are now actively participating in late-stage funding rounds of Indian SaaS and consumer tech unicorns.",
+    "source": "The Economic Times",
+    "date": "2025-03-25",
+    "tags": ["Investment", "Sovereign Funds", "Tech", "Unicorns"]
+  },
+  {
+    "id": "article-010",
+    "title": "Agriculture Tech Startups Draw Record Funding",
+    "content": "Agritech startups focusing on supply chain optimization and climate-resilient farming have drawn record early-stage funding this quarter. Investors are particularly interested in platforms that provide direct market access to farmers and use predictive analytics for crop selection.",
+    "source": "The Economic Times",
+    "date": "2025-03-23",
+    "tags": ["Agritech", "Startups", "Funding", "Climate"]
+  }
+]
