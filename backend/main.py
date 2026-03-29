@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -69,12 +69,21 @@ def api_get_insights():
     # This analyzes all articles for macro trends
     return generate_insights()
 
-# 9. Text-to-Speech Endpoint (Phase 11)
+# 9. Voice Summary Endpoint (Voice Phase 3)
 @app.post("/api/tts", tags=["AI Copilot"])
-def api_text_to_speech(req: TTSRequest):
-    # This calls our Sarvam AI TTS function
-    audio_path = generate_sarvam_tts(req.text, req.language_code)
+def api_get_voice_summary(req: TTSRequest):
+    
+    # Step 1: Translate the summary for a natural spoken version using Sarvam
+    from voice import sarvam_translate
+    native_text = sarvam_translate(req.text, req.language_code)
+    
+    # Step 2: Generate the audio
+    audio_path = generate_sarvam_tts(native_text, req.language_code)
+    
     if audio_path and os.path.exists(audio_path):
-        return FileResponse(audio_path, media_type="audio/wav", filename="summary.wav")
+        return FileResponse(audio_path, media_type="audio/wav", filename="news_summary.wav")
     else:
         raise HTTPException(status_code=500, detail="Failed to generate audio summary.")
+
+
+

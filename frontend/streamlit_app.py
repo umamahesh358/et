@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+from bs4 import BeautifulSoup
 
 # This is where our FastAPI backend lives
 API_URL = "http://127.0.0.1:8000/api"
@@ -26,17 +27,39 @@ CUSTOM_CSS = """
     /* Clean, High-Contrast Premium Newsroom Background */
     .stApp {
         background-color: #F8F9FA; /* Crisp off-white paper feel */
-        color: #1A1A1A; 
+    }
+    
+    /* Main Area Text Enforcement (Black) - Highly specific to avoid breaking buttons */
+    [data-testid="stAppViewBlockContainer"] > div > div > div > div.stMarkdown p,
+    [data-testid="stAppViewBlockContainer"] > div > div > div > div.stMarkdown li,
+    .stRadio label,
+    .stTextArea label,
+    .stTextInput label,
+    .stRadio div[data-testid="stMarkdownContainer"] p,
+    .stTextArea div[data-testid="stMarkdownContainer"] p,
+    .stTextInput div[data-testid="stMarkdownContainer"] p {
+        color: #1A1A1A !important;
     }
     
     /* Sidebar - Sharp Dark Contrast with ET Red Accent */
     [data-testid="stSidebar"] {
         background: #111111 !important; /* Deep black newspaper ink */
-        color: #FFFFFF !important;
         border-right: 4px solid #E01A22; /* ET Signature Red border */
     }
-    [data-testid="stSidebar"] * {
-        color: #F8FAFC !important;
+    
+    /* Sidebar Text Enforcement (White) */
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] li,
+    [data-testid="stSidebar"] div.stMarkdown *,
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #FFFFFF !important;
+    }
+    
+    /* Dropdowns in Sidebar should still have black text inside the dropdown list, but white text when closed */
+    [data-testid="stSidebar"] div[data-baseweb="select"] span {
+        color: #1A1A1A !important;
     }
     
     /* The ET Copilot Title */
@@ -63,14 +86,17 @@ CUSTOM_CSS = """
         width: 100%;
         border-radius: 4px; /* Sharper edges for print-news feel */
         background-color: #E01A22 !important; /* ET Red */
-        color: white !important;
-        font-weight: 600 !important;
         border: none !important;
         transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 4px 6px rgba(224, 26, 34, 0.2) !important;
+    }
+    
+    .stButton > button * {
+        color: #FFFFFF !important; /* Force button text to be white */
+        font-weight: 600 !important;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-size: 14px !important;
-        box-shadow: 0 4px 6px rgba(224, 26, 34, 0.2) !important;
     }
     
     .stButton > button:hover {
@@ -84,10 +110,12 @@ CUSTOM_CSS = """
     }
 
     /* Clean, High-Contrast Input Fields */
-    .stTextArea textarea, .stTextInput input {
+    .stTextArea textarea, .stTextInput input, 
+    .stTextArea textarea::placeholder, .stTextInput input::placeholder {
         border-radius: 4px !important;
         background-color: #FFFFFF !important;
         color: #1A1A1A !important;
+        -webkit-text-fill-color: #1A1A1A !important; /* Forces text color across browsers */
         border: 1px solid #CCCCCC !important;
         font-family: 'Inter', sans-serif !important;
         padding: 12px !important;
@@ -106,11 +134,15 @@ CUSTOM_CSS = """
         border-left: 5px solid #E01A22 !important; /* Signature left border */
         background-color: #FFFFFF !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
-        color: #1A1A1A !important;
         padding: 20px !important;
         border-top: 1px solid #EEEEEE;
         border-right: 1px solid #EEEEEE;
         border-bottom: 1px solid #EEEEEE;
+    }
+    
+    /* Force explicitly black text on internal elements of alerts */
+    div.stAlert * {
+        color: #1A1A1A !important;
     }
     
     hr {
@@ -142,9 +174,32 @@ st.sidebar.header("📊 Global Database Insights")
 st.sidebar.markdown("Find hidden connections across all news.")
 btn_insights = st.sidebar.button("Generate Trend Report", use_container_width=True)
 
-# 2. Article Text Input
+# 2. Article Input Options
 st.markdown("### 1️⃣ Provide the News")
-article_text = st.text_area("Paste Article Text Here", height=200, placeholder="Paste a news article to begin analysis...")
+input_method = st.radio("How do you want to provide the news?", ["Paste Text", "Paste Link"], horizontal=True)
+
+article_text = ""
+if input_method == "Paste Text":
+    article_text = st.text_area("Paste Article Text Here", height=200, placeholder="Paste a news article to begin analysis...")
+else:
+    article_url = st.text_input("Paste Article Link Here", placeholder="https://example.com/news-article")
+    if article_url:
+        with st.spinner("Fetching article content from URL..."):
+            try:
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                r = requests.get(article_url, headers=headers, timeout=10)
+                if r.status_code == 200:
+                    soup = BeautifulSoup(r.text, 'html.parser')
+                    # Extract text from paragraphs
+                    paragraphs = soup.find_all('p')
+                    article_text = " ".join([p.get_text() for p in paragraphs])
+                    st.success("Article content extracted successfully!")
+                    with st.expander("Show Extracted Text"):
+                        st.write(article_text[:1000] + "...")
+                else:
+                    st.error(f"Failed to fetch article. Status code: {r.status_code}")
+            except Exception as e:
+                st.error(f"Error fetching URL: {e}")
 
 # 4. Action Buttons Layout
 st.markdown("### 2️⃣ Analyze & Search")
@@ -164,67 +219,80 @@ st.divider()
 
 # --- RESULTS DISPLAY ---
 
+# Initialize session state for briefing data
+if "briefing_data" not in st.session_state:
+    st.session_state.briefing_data = None
+if "audio_bytes" not in st.session_state:
+    st.session_state.audio_bytes = None
+
 # Handle 'Generate Briefing'
 if btn_briefing:
     if not article_text:
         st.warning("Please paste an article first!")
     else:
-        # 6. Loading state
+        st.session_state.audio_bytes = None  # Reset audio when regenerating
         with st.spinner(f"Generating briefing optimized for a {persona}..."):
             try:
                 res = requests.post(f"{API_URL}/briefing", json={"article_text": article_text, "persona": persona.lower()})
                 if res.status_code == 200:
-                    data = res.json()
-                    st.success("✅ Briefing Generated!")
-                    
-                    # 5. Display in clean sections/cards
-                    col_res1, col_res2 = st.columns(2)
-                    with col_res1:
-                        st.info(f"**What Happened?**\n\n{data.get('what_happened', 'N/A')}")
-                        st.warning(f"**Key Players Involved:**\n\n{data.get('who_involved', 'N/A')}")
-                    with col_res2:
-                        st.success(f"**Why it matters to a {persona}:**\n\n{data.get('why_it_matters', 'N/A')}")
-                        st.error(f"**What to watch next:**\n\n{data.get('what_next', 'N/A')}")
-
-                    # --- PHASE 11: VOICE SUMMARY ---
-                    st.divider()
-                    st.markdown("### 🎙️ Listen to AI Briefing")
-                    
-                    audio_col1, audio_col2 = st.columns([1, 2])
-                    
-                    language_map = {
-                        "English": "en-IN",
-                        "Hindi": "hi-IN",
-                        "Telugu": "te-IN",
-                        "Tamil": "ta-IN",
-                        "Kannada": "kn-IN"
-                    }
-                    
-                    with audio_col1:
-                        selected_lang = st.selectbox("Select Language", list(language_map.keys()), key="voice_lang")
-                    
-                    with audio_col2:
-                        st.write(" ") # Spacer
-                        if st.button("🔊 Play Audio Summary", use_container_width=True):
-                            # Combine the summary points into a voice-friendly script
-                            voice_text = f"Here is your AI News Briefing. {data.get('what_happened', '')} This matters because {data.get('why_it_matters', '')}"
-                            
-                            with st.spinner(f"Generating {selected_lang} audio..."):
-                                try:
-                                    tts_res = requests.post(
-                                        f"{API_URL}/tts", 
-                                        json={"text": voice_text, "language_code": language_map[selected_lang]}
-                                    )
-                                    if tts_res.status_code == 200:
-                                        st.audio(tts_res.content, format="audio/wav")
-                                    else:
-                                        st.error("Could not generate audio summary.")
-                                except Exception as e:
-                                    st.error(f"Voice Error: {e}")
+                    st.session_state.briefing_data = res.json()
+                    st.session_state.briefing_data["persona"] = persona
                 else:
                     st.error(f"Backend Error: {res.text}")
             except Exception as e:
                 st.error(f"Could not connect to backend FASTAPI server. Did you start it? Error: {e}")
+
+# Display briefing if we have data in session state
+if st.session_state.briefing_data:
+    data = st.session_state.briefing_data
+    persona_label = data.get("persona", "Investor")
+    
+    st.success("✅ Briefing Generated!")
+    
+    col_res1, col_res2 = st.columns(2)
+    with col_res1:
+        st.info(f"**What Happened?**\n\n{data.get('what_happened', 'N/A')}")
+        st.warning(f"**Key Players Involved:**\n\n{data.get('who_involved', 'N/A')}")
+    with col_res2:
+        st.success(f"**Why it matters to a {persona_label}:**\n\n{data.get('why_it_matters', 'N/A')}")
+        st.error(f"**What to watch next:**\n\n{data.get('what_next', 'N/A')}")
+
+    # --- VOICE SUMMARY ---
+    st.divider()
+    st.markdown("### 🎙️ Listen to AI Briefing")
+    
+    language_map = {
+        "English": "en-IN",
+        "Hindi": "hi-IN",
+        "Telugu": "te-IN",
+        "Tamil": "ta-IN",
+        "Kannada": "kn-IN"
+    }
+    
+    audio_col1, audio_col2 = st.columns([1, 2])
+    with audio_col1:
+        selected_lang = st.selectbox("Select Language", list(language_map.keys()), key="voice_lang")
+    with audio_col2:
+        st.write(" ")  # Spacer
+        if st.button("🔊 Play Audio Summary", use_container_width=True):
+            voice_text = f"Here is your AI News Briefing. {data.get('what_happened', '')} This matters because {data.get('why_it_matters', '')}"
+            voice_text = voice_text[:450]
+            with st.spinner(f"Generating {selected_lang} audio..."):
+                try:
+                    tts_res = requests.post(
+                        f"{API_URL}/tts",
+                        json={"text": voice_text, "language_code": language_map[selected_lang]}
+                    )
+                    if tts_res.status_code == 200:
+                        st.session_state.audio_bytes = tts_res.content
+                    else:
+                        st.error(f"Could not generate audio. Server responded with: {tts_res.text}")
+                except Exception as e:
+                    st.error(f"Voice Error: {e}")
+
+    # Show audio player persistently if audio was generated
+    if st.session_state.audio_bytes:
+        st.audio(st.session_state.audio_bytes, format="audio/wav")
 
 # Handle 'Related Articles'
 if btn_related:
