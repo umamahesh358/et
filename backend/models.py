@@ -28,7 +28,12 @@ class RelatedRequest(BaseModel):
 
 class QARequest(BaseModel):
     question: str
+    article_text: str = ""  # The pasted article — used as primary context
 
 class TTSRequest(BaseModel):
     text: str
     language_code: str = "hi-IN"
+
+class VideoRequest(BaseModel):
+    article_text: str
+    language_code: str = "en-IN"

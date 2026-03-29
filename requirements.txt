@@ -8,3 +8,5 @@ python-dotenv
 pydantic
 requests
 beautifulsoup4
+moviepy==1.0.3
+pillow

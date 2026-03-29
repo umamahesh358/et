@@ -211,9 +211,36 @@ btn_related = col2.button("🔗 Find Related Articles", use_container_width=True
 st.markdown("### 3️⃣ Ask Questions")
 col_q1, col_q2 = st.columns([4, 1])
 with col_q1:
-    question = st.text_input("💬 Ask a specific question about the news (Search entire database):", label_visibility="collapsed", placeholder="e.g. How much did EV sales grow?")
+    question = st.text_input("💬 Ask anything about the article you loaded:", label_visibility="collapsed", placeholder="e.g. What is the main impact of this news?")
 with col_q2:
     btn_qa = st.button("Ask Copilot", use_container_width=True)
+
+# Handle 'Q&A' immediately here so the answer doesn't render at the absolute bottom of the page
+if btn_qa:
+    if not question:
+        st.warning("Please type a question first!")
+    else:
+        with st.spinner("Analyzing top articles and citing sources..."):
+            try:
+                res = requests.post(f"{API_URL}/qa", json={"question": question, "article_text": article_text})
+                if res.status_code == 200:
+                    data = res.json()
+                    st.success("✅ Question Answered!")
+                    
+                    # Display the answer clearly with high-contrast bounding box
+                    st.markdown("### 🤖 Copilot Answer:")
+                    st.info(data.get('answer', ''))
+                    
+                    # Display Citations nicely
+                    citations = data.get("citations", [])
+                    if citations:
+                        st.markdown("**📖 Sources used to answer this:**")
+                        for c in citations:
+                            st.caption(f"🔗 {c}")
+                else:
+                    st.error("Backend Error.")
+            except Exception as e:
+                st.error(f"Connection Error: {e}")
 
 st.divider()
 
@@ -224,6 +251,8 @@ if "briefing_data" not in st.session_state:
     st.session_state.briefing_data = None
 if "audio_bytes" not in st.session_state:
     st.session_state.audio_bytes = None
+if "video_bytes" not in st.session_state:
+    st.session_state.video_bytes = None
 
 # Handle 'Generate Briefing'
 if btn_briefing:
@@ -294,6 +323,60 @@ if st.session_state.briefing_data:
     if st.session_state.audio_bytes:
         st.audio(st.session_state.audio_bytes, format="audio/wav")
 
+    # --- VIDEO GENERATOR ---
+    st.divider()
+    
+    with st.container():
+        st.markdown("## 🎬 ET News Studio (Beta)")
+        st.markdown("Convert this article into a high-retention TikTok/Reels explainer video with **AI-generated visuals, pacing, and multi-lingual voiceovers**.")
+        
+        # Add a nice card effect using a container with a border
+        video_panel = st.container()
+        
+        with video_panel:
+            vid_col1, vid_col2 = st.columns([1, 2])
+            with vid_col1:
+                vid_lang = st.selectbox("🗣️ Select Narration Language", list(language_map.keys()), key="vid_lang", help="The AI will translate the script and speak naturally.")
+                
+            with vid_col2:
+                st.write(" ")
+                # Action-oriented premium button text
+                if st.button("⚡ Generate AI Shorts Video", use_container_width=True, type="primary"):
+                    st.session_state.video_bytes = None
+                    
+                    # Beautiful Demo Progress Status (shows each step visually)
+                    with st.status("🎥 AI Studios is directing your video...", expanded=True) as status:
+                        st.write("📝 1. Storyboarding the script...")
+                        st.write("🎨 2. Painting visual scenes via Stable Diffusion...")
+                        st.write(f"🎤 3. Recording {vid_lang} voiceover via Sarvam...")
+                        st.write("🎬 4. Assembling final cuts...")
+                        
+                        try:
+                            # The core logic is exactly the same
+                            vid_res = requests.post(
+                                f"{API_URL}/video",
+                                json={"article_text": article_text, "language_code": language_map[vid_lang]},
+                                timeout=600  # Increased to 10 minutes to prevent MoviePy processing drops
+                            )
+                            if vid_res.status_code == 200:
+                                st.session_state.video_bytes = vid_res.content
+                                status.update(label="✅ Explainer Video Published!", state="complete", expanded=False)
+                                st.balloons() # Nice touch for hackathons
+                            else:
+                                status.update(label="❌ Generation Failed", state="error", expanded=True)
+                                st.error(f"Error Details: {vid_res.text}")
+                        except Exception as e:
+                            status.update(label="❌ Connection Error", state="error", expanded=True)
+                            st.error(f"Error: {e}")
+                            
+            # Clear UI Display (Empty State vs Final Output)
+            st.write("")
+            if st.session_state.video_bytes:
+                st.success("🎉 Your video is ready to share on social media!")
+                st.video(st.session_state.video_bytes, format="video/mp4")
+            else:
+                st.info("💡 **Ready to go viral?** Select a language and click Generate. The autonomous AI takes roughly 30-45 seconds to craft a 5-scene video from scratch.")
+
 # Handle 'Related Articles'
 if btn_related:
     if not article_text:
@@ -316,31 +399,6 @@ if btn_related:
             except Exception as e:
                 st.error(f"Connection Error: {e}")
 
-# Handle 'Q&A'
-if btn_qa:
-    if not question:
-        st.warning("Please type a question first!")
-    else:
-        with st.spinner("Analyzing top articles and citing sources..."):
-            try:
-                res = requests.post(f"{API_URL}/qa", json={"question": question})
-                if res.status_code == 200:
-                    data = res.json()
-                    st.success("✅ Question Answered!")
-                    
-                    # Display the answer clearly
-                    st.markdown(f"### Answer:\n> {data.get('answer', '')}")
-                    
-                    # Display Citations nicely
-                    citations = data.get("citations", [])
-                    if citations:
-                        st.markdown("**📖 Sources used to answer this:**")
-                        for c in citations:
-                            st.caption(f"🔗 {c}")
-                else:
-                    st.error("Backend Error.")
-            except Exception as e:
-                st.error(f"Connection Error: {e}")
 
 # Handle 'Global Insights'
 if btn_insights:

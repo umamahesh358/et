@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
-from models import ArticlesResponse, BriefingRequest, RelatedRequest, QARequest, TTSRequest
+from models import ArticlesResponse, BriefingRequest, RelatedRequest, QARequest, TTSRequest, VideoRequest
 
 # Import our AI functions built in Phases 4, 5, 6, 9, and 11
 from llm import generate_briefing
@@ -60,8 +60,8 @@ def api_get_related(req: RelatedRequest):
 # 7. Q&A Endpoint (Phase 6)
 @app.post("/api/qa", tags=["AI Copilot"])
 def api_answer_question(req: QARequest):
-    # This calls our RAG system from qa.py
-    return answer_question(req.question)
+    # Pass both the question AND the pasted article for article-aware answers
+    return answer_question(req.question, req.article_text)
 
 # 8. Global Insights Endpoint (Phase 9)
 @app.get("/api/insights", tags=["AI Copilot"])
@@ -85,5 +85,37 @@ def api_get_voice_summary(req: TTSRequest):
     else:
         raise HTTPException(status_code=500, detail="Failed to generate audio summary.")
 
-
-
+# 10. Video Generation Endpoint (Phase 6)
+@app.post("/api/video", tags=["AI Copilot"])
+def api_generate_video(req: VideoRequest):
+    from storyboard import generate_storyboard
+    from visuals import generate_all_storyboard_images
+    from voice import generate_storyboard_audio
+    from editor import assemble_video
+    
+    try:
+        # 1. Storyboard
+        storyboard = generate_storyboard(req.article_text)
+        if "Error connecting to AI" in str(storyboard):
+            raise ValueError("Failed to generate storyboard from AI.")
+            
+        # 2. Visuals
+        image_paths = generate_all_storyboard_images(storyboard)
+        if not image_paths or len(image_paths) == 0:
+            raise ValueError("Failed to generate images (Is your HF_TOKEN set?).")
+            
+        # 3. Audio
+        audio_paths = generate_storyboard_audio(storyboard, language_code=req.language_code)
+        if not audio_paths:
+            raise ValueError("Failed to generate Voice audio (Check SARVAM_API_KEY).")
+            
+        # 4. Assemble
+        video_path = assemble_video(storyboard, image_paths, audio_paths)
+        
+        if video_path and os.path.exists(video_path):
+            return FileResponse(video_path, media_type="video/mp4", filename="news_explainer.mp4")
+        else:
+            raise ValueError("Video assembly failed to produce a file.")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

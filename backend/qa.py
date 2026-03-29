@@ -12,27 +12,36 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 # Using our reliable fast model
 MODEL_NAME = "llama-3.3-70b-versatile"
 
-def answer_question(user_question: str) -> dict:
+def answer_question(user_question: str, article_text: str = "") -> dict:
     """
-    RAG Pipeline: Retrieves related articles first, then asks the AI to answer using ONLY those articles.
+    RAG Pipeline: Uses the pasted article as primary context.
+    Also fetches related articles from ChromaDB as supplementary context.
     """
-    # 1. & 2. Search related articles first (Retrieval)
-    # We fetch the top 3 most relevant articles to build our "context"
-    related_articles = search_articles(user_question, limit=3)
-    
-    if not related_articles:
+    context_parts = []
+    citation_titles = []
+
+    # 1. PRIMARY CONTEXT: the article the user actually pasted/linked
+    if article_text and len(article_text.strip()) > 50:
+        # Truncate to 4000 chars to stay safe within token limits
+        trimmed = article_text.strip()[:4000]
+        context_parts.append(f"--- Source 1: Your Current Article ---\n{trimmed}")
+        citation_titles.append("Your Current Article")
+
+    # 2. SUPPLEMENTARY CONTEXT: ChromaDB related articles
+    related_articles = search_articles(user_question, limit=2)
+    for idx, article in enumerate(related_articles):
+        src_num = len(context_parts) + 1
+        context_parts.append(f"--- Source {src_num}: {article['title']} ({article['source']}) ---\n{article['content']}")
+        citation_titles.append(article['title'])
+
+    if not context_parts:
         return {
-            "answer": "I couldn't find any relevant articles in the database to answer your question.",
+            "answer": "I couldn't find any relevant articles in the database to answer your question. Please paste an article first.",
             "citations": []
         }
-        
-    # Build the context block for the AI to read
-    context_text = ""
-    for idx, article in enumerate(related_articles):
-        # We number them so the AI can easily cite them by Source Number
-        context_text += f"\n--- Source {idx + 1}: {article['title']} ({article['source']}) ---\n{article['content']}\n"
-    
-    # 3, 4, & 5. Prompt the AI with strict hallucination-prevention rules
+
+    context_text = "\n\n".join(context_parts)
+
     prompt = f"""
     You are a strict, highly accurate research assistant for ET News Copilot.
     
@@ -43,18 +52,19 @@ def answer_question(user_question: str) -> dict:
     {context_text}
     
     STRICT RULES:
-    1. Answer the user's question using ONLY the facts provided in the Available Context above.
-    2. If the context does not contain the answer, say EXACTLY: "I cannot answer this based on the provided articles." Do not guess or make things up.
-    3. Keep your answer clear and concise (1-2 short paragraphs).
-    4. At the end of every factual sentence you write, include a citation in brackets like [Source 1] based on where you found the fact.
+    1. Answer the user's question using ONLY the facts in the Available Context above.
+    2. Prioritise information from "Source 1: Your Current Article" whenever relevant.
+    3. If the context does not contain the answer, say EXACTLY: "I cannot answer this based on the provided article." Do not guess.
+    4. Keep your answer clear and concise (1-2 short paragraphs).
+    5. Include inline citations like [Source 1] after each factual sentence.
     
-    Format your output strictly as JSON with this structure:
+    Format your output strictly as JSON:
     {{
-        "answer": "Your detailed answer goes here with [Source 1] citations...",
-        "citations": ["Title of Source 1", "Title of Source 2"]
+        "answer": "Your detailed answer with [Source 1] citations...",
+        "citations": {json.dumps(citation_titles)}
     }}
     """
-    
+
     try:
         response = groq_client.chat.completions.create(
             model=MODEL_NAME,
@@ -63,12 +73,11 @@ def answer_question(user_question: str) -> dict:
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.0  # Temperature 0.0 means ZERO creativity. It will only copy facts exactly.
+            temperature=0.0
         )
-        
         result_text = response.choices[0].message.content
         return json.loads(result_text)
-        
+
     except Exception as e:
         print(f"Error answering question: {e}")
         return {
